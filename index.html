@@ -1,0 +1,798 @@
+
+
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asset Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+            padding-bottom: 80px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            color: #e53935;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 24px;
+        }
+        .header h1::before {
+            content: '';
+            display: inline-block;
+            width: 30px;
+            height: 20px;
+            background: #e53935;
+            border-radius: 3px;
+        }
+        .header-subtitle {
+            color: #e53935;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: opacity 0.2s;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .btn-primary {
+            background: #e53935;
+            color: white;
+        }
+        .btn-secondary {
+            background: white;
+            color: #e53935;
+            border: 1px solid #e53935;
+        }
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+        /* Search & Filter */
+        .search-filter {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr auto;
+            gap: 15px;
+            align-items: end;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .btn-clear {
+            background: white;
+            color: #666;
+            border: 1px solid #ddd;
+            padding: 10px 20px;
+        }
+        /* Table */
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: #fafafa;
+            color: #666;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        th.sortable {
+            cursor: pointer;
+        }
+        th.sortable:hover {
+            background: #f0f0f0;
+        }
+        .asset-tag {
+            color: #e53935;
+            font-weight: 500;
+        }
+        .category-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+        .category-badge.pc::before { content: '🖥️'; }
+        .category-badge.pda::before { content: '📱'; }
+        .category-badge.scanner::before { content: '📷'; }
+        .category-badge.notebook::before { content: '💻'; }
+        .category-badge.phone::before { content: '📞'; }
+        .category-badge.other::before { content: '📦'; }
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-active {
+            background: #e8f5e9;
+            color: #4caf50;
+        }
+        .status-available {
+            background: #e3f2fd;
+            color: #2196f3;
+        }
+        .status-maintenance {
+            background: #fff3e0;
+            color: #ff9800;
+        }
+        .status-retired {
+            background: #ffebee;
+            color: #e53935;
+        }
+        .btn-delete {
+            background: #ffebee;
+            color: #e53935;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn-edit {
+            background: #e3f2fd;
+            color: #2196f3;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h2 {
+            color: #333;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+        .modal-form .form-group {
+            margin-bottom: 15px;
+        }
+        .modal-form input,
+        .modal-form select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .modal-form label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .modal-buttons .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        /* Form Row - 2 columns */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .empty-state h3 {
+            margin-bottom: 10px;
+        }
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-card h3 {
+            font-size: 32px;
+            color: #333;
+        }
+        .stat-card p {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .stat-card.total { border-left: 4px solid #2196f3; }
+        .stat-card.active { border-left: 4px solid #4caf50; }
+        .stat-card.available { border-left: 4px solid #ff9800; }
+        .stat-card.maintenance { border-left: 4px solid #e53935; }
+        /* Footer */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            text-align: center;
+            padding: 15px 20px;
+            font-size: 14px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        .footer .creator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .footer .creator-icon {
+            font-size: 20px;
+        }
+        .footer .creator-name {
+            font-weight: 600;
+            color: #ffd700;
+        }
+        .footer .creator-org {
+            color: #87ceeb;
+        }
+        .footer .version {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .search-filter {
+                grid-template-columns: 1fr 1fr;
+            }
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .search-filter {
+                grid-template-columns: 1fr;
+            }
+            .table-container {
+                overflow-x: auto;
+            }
+            table {
+                min-width: 900px;
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .footer {
+                padding: 12px 15px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1>Assets</h1>
+                <p class="header-subtitle">รายการทรัพย์สิน IT ทั้งหมด</p>
+            </div>
+            <div class="header-buttons">
+                <button class="btn btn-primary" onclick="openModal()">+ New Asset</button>
+                <button class="btn btn-secondary" onclick="exportCSV()">📥 Export CSV</button>
+            </div>
+        </div>
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat-card total">
+                <h3 id="stat-total">0</h3>
+                <p>ทรัพย์สินทั้งหมด</p>
+            </div>
+            <div class="stat-card active">
+                <h3 id="stat-active">0</h3>
+                <p>กำลังใช้งาน</p>
+            </div>
+            <div class="stat-card available">
+                <h3 id="stat-available">0</h3>
+                <p>พร้อมใช้</p>
+            </div>
+            <div class="stat-card maintenance">
+                <h3 id="stat-maintenance">0</h3>
+                <p>ซ่อมบำรุง</p>
+            </div>
+        </div>
+        <!-- Search & Filter -->
+        <div class="search-filter">
+            <div class="form-group">
+                <label>SEARCH</label>
+                <input type="text" id="search" placeholder="ค้นหาชื่อ, Tag, Brand, Serial, IMEI, ผู้รับผิดชอบ...">
+            </div>
+            <div class="form-group">
+                <label>CATEGORY</label>
+                <select id="filter-category">
+                    <option value="">All</option>
+                    <option value="PC">PC</option>
+                    <option value="Notebook">Notebook</option>
+                    <option value="PDA">PDA</option>
+                    <option value="Scanner">Scanner</option>
+                    <option value="Phone">Phone</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>STATUS</label>
+                <select id="filter-status">
+                    <option value="">All</option>
+                    <option value="กำลังใช้งาน">กำลังใช้งาน</option>
+                    <option value="พร้อมใช้">พร้อมใช้</option>
+                    <option value="ซ่อมบำรุง">ซ่อมบำรุง</option>
+                    <option value="ปลดระวาง">ปลดระวาง</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>&nbsp;</label>
+                <button class="btn btn-clear" onclick="clearFilters()">✕ Clear</button>
+            </div>
+        </div>
+        <!-- Table -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="sortable" onclick="sortTable('tag')">ASSET TAG ↕</th>
+                        <th class="sortable" onclick="sortTable('name')">NAME ↕</th>
+                        <th class="sortable" onclick="sortTable('category')">CATEGORY ↕</th>
+                        <th>S/N</th>
+                        <th>IMEI</th>
+                        <th>BRAND / MODEL</th>
+                        <th class="sortable" onclick="sortTable('holder')">ผู้ถือครอง ↕</th>
+                        <th class="sortable" onclick="sortTable('status')">STATUS ↕</th>
+                        <th>ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody id="asset-table">
+                    <!-- Dynamic content -->
+                </tbody>
+            </table>
+            <div class="empty-state" id="empty-state" style="display: none;">
+                <h3>📦 ไม่พบข้อมูลทรัพย์สิน</h3>
+                <p>คลิก "New Asset" เพื่อเพิ่มรายการใหม่</p>
+            </div>
+        </div>
+    </div>
+    <!-- Footer Credit -->
+    <footer class="footer">
+        <div class="creator">
+            <span class="creator-icon">⚙️</span>
+            <span>สร้างโดย</span>
+            <span class="creator-name">Mr.Arthit</span>
+            <span class="creator-org">| ช่างกลปทุมวัน</span>
+        </div>
+        <div class="version">Asset Management System v1.0</div>
+    </footer>
+    <!-- Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">เพิ่มทรัพย์สินใหม่</h2>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <form class="modal-form" id="asset-form" onsubmit="saveAsset(event)">
+                <input type="hidden" id="edit-id">
+                
+                <div class="form-group">
+                    <label>Asset Tag *</label>
+                    <input type="text" id="asset-tag" placeholder="IMX-IT-XX-00000000" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>ชื่ออุปกรณ์ *</label>
+                    <input type="text" id="asset-name" placeholder="เช่น Asus Vivobook" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>ชนิดอุปกรณ์ *</label>
+                    <select id="asset-category" required>
+                        <option value="">-- เลือก --</option>
+                        <option value="PC">PC</option>
+                        <option value="Notebook">Notebook</option>
+                        <option value="PDA">PDA</option>
+                        <option value="Scanner">Scanner</option>
+                        <option value="Phone">Phone</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Serial Number (S/N)</label>
+                        <input type="text" id="asset-serial" placeholder="Serial Number">
+                    </div>
+                    <div class="form-group">
+                        <label>IMEI</label>
+                        <input type="text" id="asset-imei" placeholder="IMEI (15 หลัก)" maxlength="15" pattern="[0-9]*">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Brand / Model</label>
+                    <input type="text" id="asset-brand" placeholder="เช่น ASUS X1502VA-BQ792WA">
+                </div>
+                
+                <div class="form-group">
+                    <label>ผู้ถือครอง</label>
+                    <input type="text" id="asset-holder" placeholder="ชื่อผู้รับผิดชอบ">
+                </div>
+                
+                <div class="form-group">
+                    <label>สถานะ *</label>
+                    <select id="asset-status" required>
+                        <option value="พร้อมใช้">พร้อมใช้</option>
+                        <option value="กำลังใช้งาน">กำลังใช้งาน</option>
+                        <option value="ซ่อมบำรุง">ซ่อมบำรุง</option>
+                        <option value="ปลดระวาง">ปลดระวาง</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>หมายเหตุ</label>
+                    <input type="text" id="asset-note" placeholder="หมายเหตุเพิ่มเติม">
+                </div>
+                
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
+                    <button type="submit" class="btn btn-success">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+        // Data Storage
+        let assets = JSON.parse(localStorage.getItem('assets')) || [];
+        let sortField = '';
+        let sortAsc = true;
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTable();
+            updateStats();
+            // Search & Filter listeners
+            document.getElementById('search').addEventListener('input', renderTable);
+            document.getElementById('filter-category').addEventListener('change', renderTable);
+            document.getElementById('filter-status').addEventListener('change', renderTable);
+        });
+        // Generate unique ID
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+        // Generate Asset Tag
+        function generateAssetTag(category) {
+            const prefix = {
+                'PC': 'PC',
+                'Notebook': 'NB',
+                'PDA': 'PD',
+                'Scanner': 'SC',
+                'Phone': 'PH',
+                'Other': 'OT'
+            };
+            const code = prefix[category] || 'OT';
+            const num = String(assets.length + 1).padStart(8, '0');
+            return `IMX-IT-${code}-${num}`;
+        }
+        // Save to LocalStorage
+        function saveToStorage() {
+            localStorage.setItem('assets', JSON.stringify(assets));
+        }
+        // Update Statistics
+        function updateStats() {
+            document.getElementById('stat-total').textContent = assets.length;
+            document.getElementById('stat-active').textContent = assets.filter(a => a.status === 'กำลังใช้งาน').length;
+            document.getElementById('stat-available').textContent = assets.filter(a => a.status === 'พร้อมใช้').length;
+            document.getElementById('stat-maintenance').textContent = assets.filter(a => a.status === 'ซ่อมบำรุง').length;
+        }
+        // Filter Assets
+        function filterAssets() {
+            const search = document.getElementById('search').value.toLowerCase();
+            const category = document.getElementById('filter-category').value;
+            const status = document.getElementById('filter-status').value;
+            return assets.filter(asset => {
+                const matchSearch = !search || 
+                    asset.tag.toLowerCase().includes(search) ||
+                    asset.name.toLowerCase().includes(search) ||
+                    asset.serial.toLowerCase().includes(search) ||
+                    (asset.imei && asset.imei.toLowerCase().includes(search)) ||
+                    asset.brand.toLowerCase().includes(search) ||
+                    asset.holder.toLowerCase().includes(search);
+                
+                const matchCategory = !category || asset.category === category;
+                const matchStatus = !status || asset.status === status;
+                return matchSearch && matchCategory && matchStatus;
+            });
+        }
+        // Sort Table
+        function sortTable(field) {
+            if (sortField === field) {
+                sortAsc = !sortAsc;
+            } else {
+                sortField = field;
+                sortAsc = true;
+            }
+            renderTable();
+        }
+        // Render Table
+        function renderTable() {
+            let filtered = filterAssets();
+            // Sort
+            if (sortField) {
+                filtered.sort((a, b) => {
+                    let valA = a[sortField] || '';
+                    let valB = b[sortField] || '';
+                    if (sortAsc) {
+                        return valA.localeCompare(valB, 'th');
+                    } else {
+                        return valB.localeCompare(valA, 'th');
+                    }
+                });
+            }
+            const tbody = document.getElementById('asset-table');
+            const emptyState = document.getElementById('empty-state');
+            if (filtered.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            emptyState.style.display = 'none';
+            tbody.innerHTML = filtered.map(asset => `
+                <tr>
+                    <td class="asset-tag">${escapeHtml(asset.tag)}</td>
+                    <td>${escapeHtml(asset.name)}</td>
+                    <td>
+                        <span class="category-badge ${asset.category.toLowerCase()}">
+                            ${escapeHtml(asset.category)}
+                        </span>
+                    </td>
+                    <td>${escapeHtml(asset.serial) || '-'}</td>
+                    <td>${escapeHtml(asset.imei) || '-'}</td>
+                    <td>${escapeHtml(asset.brand) || '-'}</td>
+                    <td>${escapeHtml(asset.holder) || '-'}</td>
+                    <td>
+                        <span class="status-badge ${getStatusClass(asset.status)}">
+                            ${escapeHtml(asset.status)}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn-edit" onclick="editAsset('${asset.id}')">✏️</button>
+                        <button class="btn-delete" onclick="deleteAsset('${asset.id}')">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        // Get Status Class
+        function getStatusClass(status) {
+            const classes = {
+                'กำลังใช้งาน': 'status-active',
+                'พร้อมใช้': 'status-available',
+                'ซ่อมบำรุง': 'status-maintenance',
+                'ปลดระวาง': 'status-retired'
+            };
+            return classes[status] || 'status-available';
+        }
+        // Escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        // Modal Functions
+        function openModal(id = null) {
+            document.getElementById('modal').classList.add('active');
+            document.getElementById('asset-form').reset();
+            document.getElementById('edit-id').value = '';
+            document.getElementById('modal-title').textContent = 'เพิ่มทรัพย์สินใหม่';
+            if (id) {
+                const asset = assets.find(a => a.id === id);
+                if (asset) {
+                    document.getElementById('modal-title').textContent = 'แก้ไขทรัพย์สิน';
+                    document.getElementById('edit-id').value = id;
+                    document.getElementById('asset-tag').value = asset.tag;
+                    document.getElementById('asset-name').value = asset.name;
+                    document.getElementById('asset-category').value = asset.category;
+                    document.getElementById('asset-serial').value = asset.serial;
+                    document.getElementById('asset-imei').value = asset.imei || '';
+                    document.getElementById('asset-brand').value = asset.brand;
+                    document.getElementById('asset-holder').value = asset.holder;
+                    document.getElementById('asset-status').value = asset.status;
+                    document.getElementById('asset-note').value = asset.note || '';
+                }
+            }
+        }
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+        function editAsset(id) {
+            openModal(id);
+        }
+        // Save Asset
+        function saveAsset(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-id').value;
+            const category = document.getElementById('asset-category').value;
+            const assetData = {
+                id: id || generateId(),
+                tag: document.getElementById('asset-tag').value || generateAssetTag(category),
+                name: document.getElementById('asset-name').value,
+                category: category,
+                serial: document.getElementById('asset-serial').value,
+                imei: document.getElementById('asset-imei').value,
+                brand: document.getElementById('asset-brand').value,
+                holder: document.getElementById('asset-holder').value,
+                status: document.getElementById('asset-status').value,
+                note: document.getElementById('asset-note').value,
+                updatedAt: new Date().toISOString()
+            };
+            if (id) {
+                // Edit existing
+                const index = assets.findIndex(a => a.id === id);
+                if (index !== -1) {
+                    assets[index] = { ...assets[index], ...assetData };
+                }
+            } else {
+                // Add new
+                assetData.createdAt = new Date().toISOString();
+                assets.push(assetData);
+            }
+            saveToStorage();
+            renderTable();
+            updateStats();
+            closeModal();
+        }
+        // Delete Asset
+        function deleteAsset(id) {
+            if (confirm('คุณต้องการลบรายการนี้หรือไม่?')) {
+                assets = assets.filter(a => a.id !== id);
+                saveToStorage();
+                renderTable();
+                updateStats();
+            }
+        }
+        // Clear Filters
+        function clearFilters() {
+            document.getElementById('search').value = '';
+            document.getElementById('filter-category').value = '';
+            document.getElementById('filter-status').value = '';
+            renderTable();
+        }
+        // Export CSV
+        function exportCSV() {
+            if (assets.length === 0) {
+                alert('ไม่มีข้อมูลสำหรับ Export');
+                return;
+            }
+            const headers = ['Asset Tag', 'Name', 'Category', 'Serial', 'IMEI', 'Brand/Model', 'Holder', 'Status', 'Note'];
+            const rows = assets.map(a => [
+                a.tag, a.name, a.category, a.serial, a.imei || '', a.brand, a.holder, a.status, a.note || ''
+            ]);
+            let csv = '\uFEFF'; // BOM for Thai encoding
+            csv += headers.join(',') + '\n';
+            csv += rows.map(row => row.map(cell => `"${(cell || '').replace(/"/g, '""')}"`).join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `assets_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+        // Close modal on outside click
+        document.getElementById('modal').addEventListener('click', (e) => {
+            if (e.target.id === 'modal') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
