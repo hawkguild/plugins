@@ -1,6 +1,3 @@
-
-
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -385,7 +382,9 @@
             </div>
             <div class="header-buttons">
                 <button class="btn btn-primary" onclick="openModal()">+ New Asset</button>
+                <button class="btn btn-secondary" onclick="triggerImport()">📤 นำเข้า CSV</button>
                 <button class="btn btn-secondary" onclick="exportCSV()">📥 Export CSV</button>
+                <input type="file" id="csv-file-input" accept=".csv" style="display:none">
             </div>
         </div>
         <!-- Stats -->
@@ -786,6 +785,100 @@
             link.href = URL.createObjectURL(blob);
             link.download = `assets_${new Date().toISOString().split('T')[0]}.csv`;
             link.click();
+        }
+        // Trigger CSV import
+        function triggerImport() {
+            document.getElementById('csv-file-input').click();
+        }
+        document.getElementById('csv-file-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) importCSV(file);
+            e.target.value = '';
+        });
+        // Parse one CSV line respecting quoted commas
+        function parseCSVLine(line) {
+            const result = [];
+            let cur = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (inQuotes) {
+                    if (char === '"' && line[i + 1] === '"') {
+                        cur += '"';
+                        i++;
+                    } else if (char === '"') {
+                        inQuotes = false;
+                    } else {
+                        cur += char;
+                    }
+                } else {
+                    if (char === '"') {
+                        inQuotes = true;
+                    } else if (char === ',') {
+                        result.push(cur);
+                        cur = '';
+                    } else {
+                        cur += char;
+                    }
+                }
+            }
+            result.push(cur);
+            return result;
+        }
+        // Import CSV
+        function importCSV(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                let text = e.target.result;
+                if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1); // strip BOM
+                const lines = text.split(/\r\n|\n/).filter(l => l.trim() !== '');
+                if (lines.length < 2) {
+                    alert('ไฟล์ CSV ไม่มีข้อมูล');
+                    return;
+                }
+                const headers = parseCSVLine(lines[0]).map(h => h.trim());
+                const expected = ['Asset Tag', 'Name', 'Category', 'Serial', 'IMEI', 'Brand/Model', 'Holder', 'Status', 'Note'];
+                const missing = expected.filter(h => !headers.includes(h));
+                if (missing.length) {
+                    alert('รูปแบบไฟล์ไม่ถูกต้อง ขาดคอลัมน์: ' + missing.join(', '));
+                    return;
+                }
+                let added = 0, updated = 0;
+                for (let i = 1; i < lines.length; i++) {
+                    const cells = parseCSVLine(lines[i]);
+                    const row = {};
+                    headers.forEach((h, idx) => row[h] = (cells[idx] || '').trim());
+                    if (!row['Asset Tag'] && !row['Name']) continue;
+                    const existing = assets.find(a => a.tag === row['Asset Tag']);
+                    const assetData = {
+                        id: existing ? existing.id : generateId(),
+                        tag: row['Asset Tag'] || generateAssetTag(row['Category']),
+                        name: row['Name'],
+                        category: row['Category'],
+                        serial: row['Serial'],
+                        imei: row['IMEI'],
+                        brand: row['Brand/Model'],
+                        holder: row['Holder'],
+                        status: row['Status'] || 'พร้อมใช้',
+                        note: row['Note'],
+                        updatedAt: new Date().toISOString()
+                    };
+                    if (existing) {
+                        Object.assign(existing, assetData);
+                        updated++;
+                    } else {
+                        assetData.createdAt = new Date().toISOString();
+                        assets.push(assetData);
+                        added++;
+                    }
+                }
+                saveToStorage();
+                renderTable();
+                updateStats();
+                alert(`นำเข้าสำเร็จ: เพิ่มใหม่ ${added} รายการ, อัปเดต ${updated} รายการ`);
+            };
+            reader.onerror = () => alert('อ่านไฟล์ไม่สำเร็จ');
+            reader.readAsText(file, 'UTF-8');
         }
         // Close modal on outside click
         document.getElementById('modal').addEventListener('click', (e) => {
